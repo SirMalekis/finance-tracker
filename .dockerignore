@@ -1,0 +1,23 @@
+# Git
+.git
+.gitignore
+
+# Docker
+Dockerfile
+.dockerignore
+docker-compose.yml
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+venv/
+env/
+
+# База данных (локальная, нам она не нужна в контейнере)
+app.db
+
+# Переменные окружения (мы передадим их через docker-compose)
+.env

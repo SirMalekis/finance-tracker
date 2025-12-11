@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Трекер финансов</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        /* --- Общие стили и переменные --- */
+        :root { --primary-color: #007bff; --primary-hover: #0056b3; --danger-color: #dc3545; --danger-hover: #c82333; --success-color: #28a745; --background-color: #f8f9fa; --card-background: #ffffff; --text-color: #343a40; --border-color: #dee2e6; }
+        body { font-family: 'Montserrat', sans-serif; margin: 0; padding: 2em; background-color: var(--background-color); color: var(--text-color); }
+        .container { max-width: 1200px; margin: auto; background: var(--card-background); padding: 2em; border-radius: 10px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); }
+        h1, h2, h3, h4 { color: var(--text-color); font-weight: 600; }
+        .hidden { display: none; }
+        .user-info { font-weight: 600; color: var(--primary-color); }
+        .income { color: var(--success-color); }
+        .expense { color: var(--danger-color); }
+        .link-button { background: none; border: none; color: var(--primary-color); text-decoration: underline; cursor: pointer; padding: 0; font-size: 1em; font-weight: 600; }
+        /* --- ИСПРАВЛЕНИЕ ЗДЕСЬ --- */
+        .link-button:hover { color: var(--primary-hover); background: none; } /* Добавили 'background: none;' */
+
+        /* --- Всплывающие уведомления --- */
+        #message-box {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 2000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .notification {
+            padding: 1em 1.5em;
+            border-radius: 8px;
+            color: white;
+            font-weight: 600;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            opacity: 0;
+            transform: translateX(100%);
+            transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
+        }
+        .notification.show { opacity: 1; transform: translateX(0); }
+        .notification.success { background-color: var(--success-color); }
+        .notification.error { background-color: var(--danger-color); }
+        .error { color: var(--danger-color); font-weight: 600; }
+        .success { color: var(--success-color); font-weight: 600; }
+
+        /* --- Формы --- */
+        form { margin-bottom: 1.5em; padding: 1.5em; border: 1px solid var(--border-color); border-radius: 8px; background-color: #fdfdfd; }
+        .form-group { margin-bottom: 1em; position: relative; }
+        .form-group label { display: block; margin-bottom: 0.5em; font-weight: 600; }
+        input[type="text"], input[type="email"], input[type="number"], input[type="date"], input[type="password"], select { width: 100%; padding: 0.7em; border-radius: 5px; border: 1px solid var(--border-color); box-sizing: border-box; }
+        input[type="password"] { padding-right: 40px; }
+        .password-toggle { position: absolute; right: 10px; top: 70%; transform: translateY(-50%); cursor: pointer; font-size: 1.2em; user-select: none; }
+        button { cursor: pointer; background-color: var(--primary-color); color: white; border: none; padding: 0.8em 1.5em; border-radius: 5px; font-weight: 600; transition: background-color 0.2s; }
+        button:hover { background-color: var(--primary-hover); }
+        button.delete-btn { background-color: var(--danger-color); }
+        button.delete-btn:hover { background-color: var(--danger-hover); }
+        .tab-buttons button { margin-right: 10px; margin-bottom: 10px; }
+        .tab-buttons button.active { background-color: var(--text-color); }
+
+        /* --- Таблицы --- */
+        table { width: 100%; border-collapse: collapse; margin-top: 1em; }
+        th, td { border: 1px solid var(--border-color); padding: 0.8em; text-align: left; }
+        th { background-color: #f2f2f2; font-weight: 600; }
+        tbody tr:nth-child(even) { background-color: var(--background-color); }
+        tbody tr:hover { background-color: #e9ecef; }
+
+        /* --- Админ-панель --- */
+        .admin-section { margin-top: 2em; border-top: 2px solid var(--border-color); padding-top: 1.5em; }
+
+        /* --- Модальное окно --- */
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.5); }
+        .modal-content { background-color: var(--card-background); margin: 10% auto; padding: 2em; border: 1px solid var(--border-color); border-radius: 8px; width: 80%; max-width: 500px; }
+        .close { color: #aaa; float: right; font-size: 28px; font-weight: bold; cursor: pointer; }
+        .close:hover, .close:focus { color: black; text-decoration: none; }
+
+    </style>
+</head>
+<body>
+    <!-- Всплывающие уведомления теперь здесь -->
+    <div id="message-box"></div>
+
+    <div class="container">
+        <!-- Блок для авторизации -->
+        <div id="auth-section">
+            <div id="login-container">
+                <h2>Вход</h2>
+                <form id="login-form"> <div class="form-group"><label for="login-email">Email</label><input type="email" id="login-email" required></div> <div class="form-group"><label for="login-password">Пароль</label><input type="password" id="login-password" required><span class="password-toggle" onclick="togglePassword('login-password', this)">👁️</span></div> <button type="submit">Войти</button> </form>
+                <p>Еще нет аккаунта? <button class="link-button" onclick="showAuthForm('register')">Зарегистрируйтесь</button></p>
+            </div>
+            <div id="register-container" class="hidden">
+                <h2>Регистрация</h2>
+                <form id="register-form"> <div class="form-group"><label for="register-username">Имя пользователя</label><input type="text" id="register-username" required></div> <div class="form-group"><label for="register-email">Email</label><input type="email" id="register-email" required></div> <div class="form-group"><label for="register-password">Пароль</label><input type="password" id="register-password" required><span class="password-toggle" onclick="togglePassword('register-password', this)">👁️</span></div> <div class="form-group"><label for="register-password-confirm">Подтвердите пароль</label><input type="password" id="register-password-confirm" required><span class="password-toggle" onclick="togglePassword('register-password-confirm', this)">👁️</span></div> <button type="submit">Зарегистрироваться</button> </form>
+                <p>Уже есть аккаунт? <button class="link-button" onclick="showAuthForm('login')">Войдите</button></p>
+            </div>
+        </div>
+
+        <!-- Основной интерфейс приложения -->
+        <div id="app-section" class="hidden">
+            <h1>💰 Трекер финансов</h1>
+            <p class="user-info">Вы вошли как: <span id="user-info"></span> | <button id="logout-btn">Выйти</button></p>
+
+            <h3>Добавить транзакцию</h3>
+            <form id="add-transaction-form">
+                <div class="form-group"><label for="transaction-type">Тип</label><select id="transaction-type" required><option value="expense">Расход</option><option value="income">Доход</option></select></div>
+                <div class="form-group"><label for="amount">Сумма</label><input type="number" step="0.01" id="amount" required></div>
+                 <div class="form-group"><label for="currency">Валюта</label><select id="currency" required><option value="RUB">RUB</option><option value="KZT">KZT</option><option value="USD">USD</option><option value="EUR">EUR</option><option value="GBP">GBP</option></select></div>
+                <div class="form-group"><label for="category">Категория</label><input type="text" id="category" placeholder="напр., Еда, Транспорт" required></div>
+                <div class="form-group"><label for="date">Дата</label><input type="date" id="date" required></div>
+                <div class="form-group"><label for="description">Описание (необязательно)</label><input type="text" id="description"></div>
+                <button type="submit">Добавить</button>
+            </form>
+
+            <h3>Мои транзакции</h3>
+            <table id="transactions-table">
+                <thead><tr><th>Дата</th><th>Тип</th><th>Категория</th><th>Сумма</th><th>Валюта</th><th>Описание</th><th>Действие</th></tr></thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <!-- Админская панель -->
+        <div id="admin-section" class="hidden admin-section">
+            <h3>Административная панель</h3>
+            <div class="tab-buttons"><button id="show-all-transactions-btn" class="active">Все транзакции</button><button id="show-all-users-btn">Управление пользователями</button></div>
+            <div id="all-transactions-tab" class="tab-content"><h4>Все транзакции пользователей</h4><table id="admin-transactions-table"><thead><tr><th>Автор</th><th>Дата</th><th>Тип</th><th>Категория</th><th>Сумма</th><th>Валюта</th></tr></thead><tbody></tbody></table></div>
+            <div id="all-users-tab" class="tab-content hidden"><h4>Управление пользователями</h4><table id="admin-users-table"><thead><tr><th>ID</th><th>Имя</th><th>Email</th><th>Роль</th><th>Действие</th></tr></thead><tbody></tbody></table></div>
+        </div>
+    </div>
+
+    <!-- Модальное окно для редактирования -->
+    <div id="edit-modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h3>Редактировать транзакцию</h3>
+            <form id="edit-transaction-form">
+                <input type="hidden" id="edit-expense-id">
+                <div class="form-group"><label for="edit-transaction-type">Тип</label><select id="edit-transaction-type" required><option value="expense">Расход</option><option value="income">Доход</option></select></div>
+                <div class="form-group"><label for="edit-amount">Сумма</label><input type="number" step="0.01" id="edit-amount" required></div>
+                <div class="form-group"><label for="edit-currency">Валюта</label><select id="edit-currency" required><option value="RUB">RUB</option><option value="KZT">KZT</option><option value="USD">USD</option><option value="EUR">EUR</option><option value="GBP">GBP</option></select></div>
+                <div class="form-group"><label for="edit-category">Категория</label><input type="text" id="edit-category" required></div>
+                <div class="form-group"><label for="edit-date">Дата</label><input type="date" id="edit-date" required></div>
+                <div class="form-group"><label for="edit-description">Описание</label><input type="text" id="edit-description"></div>
+                <button type="submit">Сохранить изменения</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = '/api';
+        let currentToken = localStorage.getItem('token');
+        let currentUser = null;
+
+        // --- Функции для работы с UI ---
+        function showSection(sectionId) { document.querySelectorAll('#auth-section, #app-section, #admin-section').forEach(s => s.classList.add('hidden')); document.getElementById(sectionId).classList.remove('hidden'); }
+        function showAuthForm(formType) { document.getElementById('login-container').classList.add('hidden'); document.getElementById('register-container').classList.add('hidden'); if (formType === 'login') { document.getElementById('login-container').classList.remove('hidden'); } else { document.getElementById('register-container').classList.remove('hidden'); } }
+        function togglePassword(inputId, icon) { const input = document.getElementById(inputId); if (input.type === 'password') { input.type = 'text'; icon.textContent = '🙈'; } else { input.type = 'password'; icon.textContent = '👁️'; } }
+        function escapeHtml(unsafe) { return unsafe.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;"); }
+
+        // --- НОВАЯ ФУНКЦИЯ ДЛЯ ФОРМАТИРОВАНИЯ ДАТЫ ---
+        function formatDate(dateString) {
+            if (!dateString) return '';
+            const parts = dateString.split('-');
+            return `${parts[2]}-${parts[1]}-${parts[0]}`;
+        }
+
+        // --- НОВАЯ ФУНКЦИЯ ДЛЯ ВСПЛЫВАЮЩИХ УВЕДОМЛЕНИЙ ---
+        function showMessage(text, type = 'success') {
+            const box = document.getElementById('message-box');
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.textContent = text;
+            box.appendChild(notification);
+
+            // Анимация появления
+            setTimeout(() => notification.classList.add('show'), 10);
+
+            // Удаление через 3 секунды
+            setTimeout(() => {
+                notification.classList.remove('show');
+                notification.addEventListener('transitionend', () => notification.remove());
+            }, 3000);
+        }
+
+        // --- Функции для работы с модальным окном ---
+        const modal = document.getElementById('edit-modal');
+        const span = document.getElementsByClassName("close")[0];
+        span.onclick = function() { modal.style.display = "none"; }
+        window.onclick = function(event) { if (event.target == modal) { modal.style.display = "none"; } }
+
+        // --- Функции для работы с API ---
+        async function apiCall(endpoint, method = 'GET', body = null) {
+            const options = { method, headers: { 'Content-Type': 'application/json' } };
+            if (currentToken) options.headers['Authorization'] = `Bearer ${currentToken}`;
+            if (body) options.body = JSON.stringify(body);
+            const response = await fetch(API_URL + endpoint, options);
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.message || 'Произошла ошибка');
+            return data;
+        }
+
+        function parseJwt(token) { try { return JSON.parse(atob(token.split('.')[1])); } catch (e) { return null; } }
+
+        function renderTransactions(transactions, tableBodyId) {
+            const tbody = document.querySelector(`#${tableBodyId} tbody`);
+            tbody.innerHTML = '';
+            transactions.forEach(t => {
+                const row = tbody.insertRow();
+                const typeClass = t.transaction_type === 'income' ? 'income' : 'expense';
+                const amountText = t.transaction_type === 'income' ? `+${t.amount}` : `-${t.amount}`;
+
+                if (tableBodyId === 'transactions-table') {
+                    row.innerHTML = `
+                        <td>${formatDate(t.date)}</td>
+                        <td class="${typeClass}">${t.transaction_type === 'income' ? 'Доход' : 'Расход'}</td>
+                        <td>${escapeHtml(t.category)}</td>
+                        <td class="${typeClass}">${amountText}</td>
+                        <td>${t.currency}</td>
+                        <td>${escapeHtml(t.description)}</td>
+                        <td>
+                            <button class="delete-btn" onclick="deleteTransaction(${t.id})">Удалить</button>
+                            <button onclick="openEditModal(${t.id})">Редактировать</button>
+                        </td>`;
+                } else { row.innerHTML = `<td>${escapeHtml(t.author)}</td><td>${formatDate(t.date)}</td><td class="${typeClass}">${t.transaction_type === 'income' ? 'Доход' : 'Расход'}</td><td>${escapeHtml(t.category)}</td><td class="${typeClass}">${amountText}</td><td>${t.currency}</td>`; }
+            });
+        }
+
+        function renderUsers(users) {
+            const tbody = document.querySelector('#admin-users-table tbody');
+            tbody.innerHTML = '';
+            users.forEach(u => {
+                const row = tbody.insertRow();
+                row.innerHTML = `<td>${u.id}</td><td>${escapeHtml(u.username)}</td><td>${escapeHtml(u.email)}</td><td>${u.role}</td><td><button class="delete-btn" onclick="deleteUser(${u.id}, '${escapeHtml(u.username)}')">Удалить</button></td>`;
+            });
+        }
+
+        async function deleteTransaction(id) { if (!confirm('Вы уверены, что хотите удалить эту транзакцию?')) return; try { await apiCall(`/expenses/${id}`, 'DELETE'); showMessage('Транзакция удалена!'); loadApp(); } catch (error) { showMessage(error.message, 'error'); } }
+        async function deleteUser(id, username) { if (!confirm(`Вы уверены, что хотите удалить пользователя "${username}" и все его транзакции?`)) return; try { await apiCall(`/admin/users/${id}`, 'DELETE'); showMessage(`Пользователь "${username}" удален!`); loadAdminUsers(); } catch (error) { showMessage(error.message, 'error'); } }
+
+        // --- Логика редактирования ---
+        async function openEditModal(id) {
+            try {
+                const transactions = await apiCall('/expenses');
+                const transaction = transactions.find(t => t.id === id);
+                if (!transaction) { showMessage('Транзакция не найдена', 'error'); return; }
+                document.getElementById('edit-expense-id').value = transaction.id;
+                document.getElementById('edit-transaction-type').value = transaction.transaction_type;
+                document.getElementById('edit-amount').value = transaction.amount;
+                document.getElementById('edit-currency').value = transaction.currency;
+                document.getElementById('edit-category').value = transaction.category;
+                document.getElementById('edit-date').value = transaction.date;
+                document.getElementById('edit-description').value = transaction.description;
+                modal.style.display = "block";
+            } catch (error) { showMessage(error.message, 'error'); }
+        }
+
+        document.getElementById('edit-transaction-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('edit-expense-id').value;
+            try {
+                await apiCall(`/expenses/${id}`, 'PUT', {
+                    transaction_type: document.getElementById('edit-transaction-type').value,
+                    amount: parseFloat(document.getElementById('edit-amount').value),
+                    currency: document.getElementById('edit-currency').value,
+                    category: document.getElementById('edit-category').value,
+                    date: document.getElementById('edit-date').value,
+                    description: document.getElementById('edit-description').value,
+                });
+                showMessage('Транзакция обновлена!');
+                modal.style.display = "none";
+                loadApp();
+            } catch (error) { showMessage(error.message, 'error'); }
+        });
+
+        async function loadApp() {
+            try {
+                const transactions = await apiCall('/expenses');
+                const tokenPayload = parseJwt(currentToken);
+                currentUser = tokenPayload;
+                document.getElementById('user-info').textContent = currentUser.username;
+                renderTransactions(transactions, 'transactions-table');
+                showSection('app-section');
+                if (currentUser.role === 'admin') {
+                    document.getElementById('admin-section').classList.remove('hidden');
+                    loadAdminTransactions();
+                    loadAdminUsers();
+                }
+            } catch (error) { console.error('Ошибка проверки токена:', error); logout(); }
+        }
+
+        async function loadAdminTransactions() {
+            const allTransactions = await apiCall('/admin/expenses');
+            renderTransactions(allTransactions, 'admin-transactions-table');
+        }
+
+        async function loadAdminUsers() {
+            const allUsers = await apiCall('/admin/users');
+            renderUsers(allUsers);
+        }
+
+        function logout() {
+            localStorage.removeItem('token');
+            currentToken = null;
+            currentUser = null;
+            showSection('auth-section');
+            showAuthForm('login');
+            showMessage('Вы вышли из системы.');
+        }
+
+        // --- Обработчики событий ---
+        document.getElementById('register-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const password = document.getElementById('register-password').value;
+            const passwordConfirm = document.getElementById('register-password-confirm').value;
+            if (password !== passwordConfirm) { showMessage('Пароли не совпадают!', 'error'); return; }
+            try {
+                await apiCall('/register', 'POST', {
+                    username: document.getElementById('register-username').value,
+                    email: document.getElementById('register-email').value,
+                    password: password,
+                    password_confirm: passwordConfirm,
+                });
+                showMessage('Регистрация прошла успешно! Теперь вы можете войти.');
+                e.target.reset();
+                showAuthForm('login');
+            } catch (error) { showMessage(error.message, 'error'); }
+        });
+
+        document.getElementById('login-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            try {
+                const data = await apiCall('/login', 'POST', {
+                    email: document.getElementById('login-email').value,
+                    password: document.getElementById('login-password').value,
+                });
+                currentToken = data.token;
+                localStorage.setItem('token', currentToken);
+                showMessage('Вход выполнен успешно!');
+                loadApp();
+            } catch (error) { showMessage(error.message, 'error'); }
+        });
+
+        document.getElementById('add-transaction-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            try {
+                await apiCall('/expenses', 'POST', {
+                    transaction_type: document.getElementById('transaction-type').value,
+                    amount: parseFloat(document.getElementById('amount').value),
+                    currency: document.getElementById('currency').value,
+                    category: document.getElementById('category').value,
+                    date: document.getElementById('date').value,
+                    description: document.getElementById('description').value,
+                });
+                showMessage('Транзакция добавлена!');
+                e.target.reset();
+                loadApp();
+            } catch (error) { showMessage(error.message, 'error'); }
+        });
+
+        document.getElementById('logout-btn').addEventListener('click', logout);
+        document.getElementById('show-all-transactions-btn').addEventListener('click', function() { document.getElementById('all-transactions-tab').classList.remove('hidden'); document.getElementById('all-users-tab').classList.add('hidden'); this.classList.add('active'); document.getElementById('show-all-users-btn').classList.remove('active'); });
+        document.getElementById('show-all-users-btn').addEventListener('click', function() { document.getElementById('all-transactions-tab').classList.add('hidden'); document.getElementById('all-users-tab').classList.remove('hidden'); this.classList.add('active'); document.getElementById('show-all-transactions-btn').classList.remove('active'); });
+
+        // --- Запуск приложения ---
+        if (currentToken) { loadApp(); } else { showSection('auth-section'); showAuthForm('login'); }
+    </script>
+</body>
+</html>

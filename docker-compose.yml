@@ -1,0 +1,30 @@
+services:
+  # Сервис для вашего веб-приложения
+  web:
+    build: . # Собрать образ из Dockerfile в текущей директории
+    command: gunicorn --workers 3 --bind 0.0.0.0:5000 app:app
+    volumes:
+      - .:/app # Пробросить код в контейнер для удобной разработки
+    ports:
+      - "5000:5000" # Пробросить порт 5000 с контейнера на ваш компьютер
+    environment:
+      # Переменные для подключения к БД. 'db' - это имя сервиса ниже
+      - DATABASE_URL=postgresql://user:password@db:5432/expense_db
+      # ВАЖНО: В реальном проекте используйте более сложный ключ!
+      - SECRET_KEY=a_very_secret_key_for_docker_please_change_me
+    depends_on:
+      - db # Указываем, что этот сервис зависит от сервиса 'db'
+
+  # Сервис для базы данных PostgreSQL
+  db:
+    image: postgres:13 # Используем готовый образ PostgreSQL
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/ # Сохраняем данные БД между перезапусками
+    environment:
+      - POSTGRES_DB=expense_db
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=password
+
+# Определяем именованный том для хранения данных БД
+volumes:
+  postgres_data:

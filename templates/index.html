@@ -32,11 +32,8 @@
         .notification {
             padding: 1em 1.5em;
             border-radius: 8px;
-            /* Явно указываем все свойства текста */
-            color: #FFFFFF !important; /* Белый цвет на цветном фоне */
-            font-size: 1em !important;
-            font-weight: 600 !important;
-            line-height: 1.4;
+            color: white;
+            font-weight: 600;
             box-shadow: 0 4px 12px rgba(0,0,0,0.15);
             opacity: 0;
             transform: translateX(100%);
@@ -45,8 +42,9 @@
         .notification.show { opacity: 1; transform: translateX(0); }
         .notification.success { background-color: var(--success-color); }
         .notification.error { background-color: var(--danger-color); }
+        .notification .date { font-weight: 700; } /* Выделяем дату жирным шрифтом */
 
-        /* --- Остальные стили (без изменений) --- */
+        /* --- Формы --- */
         form { margin-bottom: 1.5em; padding: 1.5em; border: 1px solid var(--border-color); border-radius: 8px; background-color: #fdfdfd; }
         .form-group { margin-bottom: 1em; position: relative; }
         .form-group label { display: block; margin-bottom: 0.5em; font-weight: 600; }
@@ -60,14 +58,17 @@
         .tab-buttons button { margin-right: 10px; margin-bottom: 10px; }
         .tab-buttons button.active { background-color: var(--text-color); }
 
+        /* --- Таблицы --- */
         table { width: 100%; border-collapse: collapse; margin-top: 1em; }
         th, td { border: 1px solid var(--border-color); padding: 0.8em; text-align: left; }
         th { background-color: #f2f2f2; font-weight: 600; }
         tbody tr:nth-child(even) { background-color: var(--background-color); }
         tbody tr:hover { background-color: #e9ecef; }
 
+        /* --- Админ-панель --- */
         .admin-section { margin-top: 2em; border-top: 2px solid var(--border-color); padding-top: 1.5em; }
 
+        /* --- Модальное окно --- */
         .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.5); }
         .modal-content { background-color: var(--card-background); margin: 10% auto; padding: 2em; border: 1px solid var(--border-color); border-radius: 8px; width: 80%; max-width: 500px; }
         .close { color: #aaa; float: right; font-size: 28px; font-weight: bold; cursor: pointer; }
@@ -76,7 +77,7 @@
     </style>
 </head>
 <body>
-    <!-- Всплывающие уведомления теперь здесь -->
+    <!-- Всплывающие уведомления -->
     <div id="message-box"></div>
 
     <div class="container">
@@ -155,29 +156,35 @@
         function togglePassword(inputId, icon) { const input = document.getElementById(inputId); if (input.type === 'password') { input.type = 'text'; icon.textContent = '🙈'; } else { input.type = 'password'; icon.textContent = '👁️'; } }
         function escapeHtml(unsafe) { return unsafe.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;"); }
 
+        // --- НОВАЯ ФУНКЦИЯ ДЛЯ ФОРМАТИРОВАНИЯ ДАТЫ ---
+        function formatDate(dateString) {
+            if (!dateString) return '';
+            const parts = dateString.split('-');
+            return `${parts[2]}-${parts[1]}-${parts[0]}`;
+        }
+
+        // --- Функция для работы с модальным окном ---
+        const modal = document.getElementById('edit-modal');
+        const span = document.getElementsByClassName("close")[0];
+        span.onclick = function() { modal.style.display = "none"; }
+        window.onclick = function(event) { if (event.target == modal) { modal.style.display = "none"; } }
+
         // --- НОВАЯ ФУНКЦИЯ ДЛЯ ВСПЛЫВАЮЩИХ УВЕДОМЛЕНИЙ ---
-        function showMessage(text, type = 'success') {
+        function showMessage(htmlContent, type = 'success') {
             const box = document.getElementById('message-box');
             const notification = document.createElement('div');
             notification.className = `notification ${type}`;
-            notification.textContent = text;
+            // ИЗМЕНЕНО: используем innerHTML вместо textContent, чтобы отобразить HTML
+            notification.innerHTML = htmlContent;
             box.appendChild(notification);
 
-            // Анимация появления
             setTimeout(() => notification.classList.add('show'), 10);
 
-            // Удаление через 3 секунды
             setTimeout(() => {
                 notification.classList.remove('show');
                 notification.addEventListener('transitionend', () => notification.remove());
             }, 3000);
         }
-
-        // --- Функции для работы с модальным окном ---
-        const modal = document.getElementById('edit-modal');
-        const span = document.getElementsByClassName("close")[0];
-        span.onclick = function() { modal.style.display = "none"; }
-        window.onclick = function(event) { if (event.target == modal) { modal.style.display = "none"; } }
 
         // --- Функции для работы с API ---
         async function apiCall(endpoint, method = 'GET', body = null) {
@@ -223,12 +230,6 @@
                 const row = tbody.insertRow();
                 row.innerHTML = `<td>${u.id}</td><td>${escapeHtml(u.username)}</td><td>${escapeHtml(u.email)}</td><td>${u.role}</td><td><button class="delete-btn" onclick="deleteUser(${u.id}, '${escapeHtml(u.username)}')">Удалить</button></td>`;
             });
-        }
-
-        function formatDate(dateString) {
-            if (!dateString) return '';
-            const parts = dateString.split('-');
-            return `${parts[2]}-${parts[1]}-${parts[0]}`;
         }
 
         async function deleteTransaction(id) { if (!confirm('Вы уверены, что хотите удалить эту транзакцию?')) return; try { await apiCall(`/expenses/${id}`, 'DELETE'); showMessage('Транзакция удалена!'); loadApp(); } catch (error) { showMessage(error.message, 'error'); } }
@@ -340,15 +341,21 @@
         document.getElementById('add-transaction-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             try {
+                const amount = parseFloat(document.getElementById('amount').value);
+                const currency = document.getElementById('currency').value;
+                const category = document.getElementById('category').value;
+                const date = document.getElementById('date').value;
+
                 await apiCall('/expenses', 'POST', {
                     transaction_type: document.getElementById('transaction-type').value,
-                    amount: parseFloat(document.getElementById('amount').value),
-                    currency: document.getElementById('currency').value,
-                    category: document.getElementById('category').value,
-                    date: document.getElementById('date').value,
+                    amount: amount,
+                    currency: currency,
+                    category: category,
+                    date: date,
                     description: document.getElementById('description').value,
                 });
-                showMessage('Транзакция добавлена!');
+                // ИЗМЕНЕНО: Формируем информативное сообщение с датой
+                showMessage(`Транзакция на сумму ${amount} ${currency} от <span class="date">${formatDate(date)}</span> добавлена!`);
                 e.target.reset();
                 loadApp();
             } catch (error) { showMessage(error.message, 'error'); }

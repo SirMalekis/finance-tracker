@@ -19,7 +19,7 @@
         .link-button { background: none; border: none; color: var(--primary-color); text-decoration: underline; cursor: pointer; padding: 0; font-size: 1em; font-weight: 600; }
         .link-button:hover { color: var(--primary-hover); }
 
-        /* --- Всплывающие уведомления (ИСПРАВЛЕННЫЙ БЛОК) --- */
+        /* --- Всплывающие уведомления --- */
         #message-box {
             position: fixed;
             top: 20px;
@@ -32,8 +32,7 @@
         .notification {
             padding: 1em 1.5em;
             border-radius: 8px;
-            /* Явно указываем все свойства текста */
-            color: #FFFFFF !important; /* Белый цвет на цветном фоне */
+            color: #FFFFFF !important;
             font-size: 1em !important;
             font-weight: 600 !important;
             line-height: 1.4;
@@ -46,7 +45,7 @@
         .notification.success { background-color: var(--success-color); }
         .notification.error { background-color: var(--danger-color); }
 
-        /* --- Остальные стили (без изменений) --- */
+        /* --- Остальные стили --- */
         form { margin-bottom: 1.5em; padding: 1.5em; border: 1px solid var(--border-color); border-radius: 8px; background-color: #fdfdfd; }
         .form-group { margin-bottom: 1em; position: relative; }
         .form-group label { display: block; margin-bottom: 0.5em; font-weight: 600; }
@@ -76,7 +75,7 @@
     </style>
 </head>
 <body>
-    <!-- Всплывающие уведомления теперь здесь -->
+    <!-- Всплывающие уведомления -->
     <div id="message-box"></div>
 
     <div class="container">
@@ -126,7 +125,7 @@
         </div>
     </div>
 
-    <!-- Модальное окно для редактирования -->
+    <!-- Окно для редактирования -->
     <div id="edit-modal" class="modal">
         <div class="modal-content">
             <span class="close">&times;</span>
@@ -155,7 +154,7 @@
         function togglePassword(inputId, icon) { const input = document.getElementById(inputId); if (input.type === 'password') { input.type = 'text'; icon.textContent = '🙈'; } else { input.type = 'password'; icon.textContent = '👁️'; } }
         function escapeHtml(unsafe) { return unsafe.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;"); }
 
-        // --- НОВАЯ ФУНКЦИЯ ДЛЯ ВСПЛЫВАЮЩИХ УВЕДОМЛЕНИЙ ---
+        // --- ФУНКЦИЯ ДЛЯ ВСПЛЫВАЮЩИХ УВЕДОМЛЕНИЙ ---
         function showMessage(text, type = 'success') {
             const box = document.getElementById('message-box');
             const notification = document.createElement('div');

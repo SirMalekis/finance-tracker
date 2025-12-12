@@ -48,7 +48,7 @@ def register():
     if User.query.filter_by(email=data['email']).first():
         return jsonify({'message': 'Пользователь с таким email уже существует'}), 400
 
-    # Создаем пользователя, РОЛЬ НЕ УКАЗЫВАЕМ, используется 'user' по умолчанию
+    # Создание пользователя (по дефолту user)
     new_user = User(username=data['username'], email=data['email'])
     new_user.set_password(data['password'])
     db.session.add(new_user)

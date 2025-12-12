@@ -22,7 +22,7 @@ def create_app():
     # Команда для инициализации БД и создания админа
     @app.cli.command("init-db")
     def init_db_command():
-        """Создает таблицы в базе данных и админа по умолчанию."""
+        """Создает таблицы в базе данных и админа"""
         with app.app_context():
             db.create_all()
             if User.query.filter_by(email='admin@example.com').first() is None:
@@ -37,8 +37,7 @@ def create_app():
 
     return app
 
-# --- ЭТО ГЛАВНОЕ ИЗМЕНЕНИЕ ---
-# Создаем экземпляр приложения на уровне модуля, чтобы его нашел Gunicorn
+# надо создать экземпляр приложения на уровне модуля, чтобы его нашел Gunicorn
 app = create_app()
 
 # Этот блок оставляем для локального запуска без Docker
